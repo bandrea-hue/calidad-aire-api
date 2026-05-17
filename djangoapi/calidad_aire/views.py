@@ -7,9 +7,24 @@ from scripts.p1.django_models.corredor_emision_django import CorredorEmisionDjan
 from scripts.p1.django_models.estacion_monitoreo_django import EstacionMonitoreoDjango
 
 
+def not_authenticated_response():
+    return JsonResponse({
+        "ok": False,
+        "message": "User is not authenticated",
+        "data": []
+    })
+
+
+def user_is_not_authenticated(request):
+    return not request.user.is_authenticated
+
+
 class ZonaCalidadAireView(BaseDjangoView):
 
     def insert(self, request):
+        if user_is_not_authenticated(request):
+            return not_authenticated_response()
+
         d = request.POST.dict()
         zona = ZonaCalidadAireDjango()
         result = zona.insert(d)
@@ -26,6 +41,9 @@ class ZonaCalidadAireView(BaseDjangoView):
         return JsonResponse(result)
 
     def update(self, request, id):
+        if user_is_not_authenticated(request):
+            return not_authenticated_response()
+
         d = request.POST.dict()
         d["id"] = id
         zona = ZonaCalidadAireDjango()
@@ -33,6 +51,9 @@ class ZonaCalidadAireView(BaseDjangoView):
         return JsonResponse(result)
 
     def delete(self, id):
+        if user_is_not_authenticated(self.request):
+            return not_authenticated_response()
+
         zona = ZonaCalidadAireDjango()
         result = zona.delete({"id": id})
         return JsonResponse(result)
@@ -41,6 +62,9 @@ class ZonaCalidadAireView(BaseDjangoView):
 class CorredorEmisionView(BaseDjangoView):
 
     def insert(self, request):
+        if user_is_not_authenticated(request):
+            return not_authenticated_response()
+
         d = request.POST.dict()
         corredor = CorredorEmisionDjango()
         result = corredor.insert(d)
@@ -57,6 +81,9 @@ class CorredorEmisionView(BaseDjangoView):
         return JsonResponse(result)
 
     def update(self, request, id):
+        if user_is_not_authenticated(request):
+            return not_authenticated_response()
+
         d = request.POST.dict()
         d["id"] = id
         corredor = CorredorEmisionDjango()
@@ -64,6 +91,9 @@ class CorredorEmisionView(BaseDjangoView):
         return JsonResponse(result)
 
     def delete(self, id):
+        if user_is_not_authenticated(self.request):
+            return not_authenticated_response()
+
         corredor = CorredorEmisionDjango()
         result = corredor.delete({"id": id})
         return JsonResponse(result)
@@ -72,6 +102,9 @@ class CorredorEmisionView(BaseDjangoView):
 class EstacionMonitoreoView(BaseDjangoView):
 
     def insert(self, request):
+        if user_is_not_authenticated(request):
+            return not_authenticated_response()
+
         d = request.POST.dict()
         estacion = EstacionMonitoreoDjango()
         result = estacion.insert(d)
@@ -88,6 +121,9 @@ class EstacionMonitoreoView(BaseDjangoView):
         return JsonResponse(result)
 
     def update(self, request, id):
+        if user_is_not_authenticated(request):
+            return not_authenticated_response()
+
         d = request.POST.dict()
         d["id"] = id
         estacion = EstacionMonitoreoDjango()
@@ -95,6 +131,9 @@ class EstacionMonitoreoView(BaseDjangoView):
         return JsonResponse(result)
 
     def delete(self, id):
+        if user_is_not_authenticated(self.request):
+            return not_authenticated_response()
+
         estacion = EstacionMonitoreoDjango()
         result = estacion.delete({"id": id})
         return JsonResponse(result)
