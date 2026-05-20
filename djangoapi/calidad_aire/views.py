@@ -1,11 +1,29 @@
 from django.http import JsonResponse
+from django.contrib.gis.geos import GEOSGeometry
+
+from rest_framework import serializers
+from rest_framework import viewsets
+from rest_framework import permissions
 
 from core.myLib.baseDjangoView import BaseDjangoView
+
+from calidad_aire.models import (
+    ZonaCalidadAire,
+    CorredorEmision,
+    EstacionMonitoreo
+)
 
 from scripts.p1.django_models.zona_calidad_aire_django import ZonaCalidadAireDjango
 from scripts.p1.django_models.corredor_emision_django import CorredorEmisionDjango
 from scripts.p1.django_models.estacion_monitoreo_django import EstacionMonitoreoDjango
 
+
+EPSG_CODE = 9377
+
+
+# =========================================================
+# RESPUESTAS COMUNES PARA AUTENTICACIÓN
+# =========================================================
 
 def not_authenticated_response():
     return JsonResponse({
@@ -18,6 +36,68 @@ def not_authenticated_response():
 def user_is_not_authenticated(request):
     return not request.user.is_authenticated
 
+
+# =========================================================
+# SERIALIZERS PARA DJANGO REST FRAMEWORK
+# Estos serializers permiten que la geometría se vea como WKT
+# en la API navegable de Django REST Framework.
+# =========================================================
+
+class WKTGeometryModelSerializer(serializers.ModelSerializer):
+    geom = serializers.CharField()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        if instance.geom:
+            data["geom"] = instance.geom.wkt
+        else:
+            data["geom"] = None
+
+        return data
+
+    def validate_geom(self, value):
+        try:
+            geom = GEOSGeometry(value, srid=EPSG_CODE)
+        except Exception:
+            raise serializers.ValidationError("Invalid WKT geometry")
+
+        if not geom.valid:
+            raise serializers.ValidationError("Invalid geometry")
+
+        return geom
+
+
+class ZonaCalidadAireSerializer(WKTGeometryModelSerializer):
+
+    class Meta:
+        model = ZonaCalidadAire
+        fields = "__all__"
+
+
+class CorredorEmisionSerializer(WKTGeometryModelSerializer):
+
+    class Meta:
+        model = CorredorEmision
+        fields = "__all__"
+
+
+class EstacionMonitoreoSerializer(WKTGeometryModelSerializer):
+
+    class Meta:
+        model = EstacionMonitoreo
+        fields = "__all__"
+
+
+# =========================================================
+# VIEWS CON BASEDJANGOVIEW
+# Estas son las vistas principales del taller.
+# Se usan con rutas tipo:
+# /calidad_aire/estacion_monitoreo/selectall/
+# /calidad_aire/estacion_monitoreo/insert/
+# /calidad_aire/estacion_monitoreo/update/1/
+# /calidad_aire/estacion_monitoreo/delete/1/
+# =========================================================
 
 class ZonaCalidadAireView(BaseDjangoView):
 
@@ -137,3 +217,30 @@ class EstacionMonitoreoView(BaseDjangoView):
         estacion = EstacionMonitoreoDjango()
         result = estacion.delete({"id": id})
         return JsonResponse(result)
+
+
+# =========================================================
+# VIEWS DE DJANGO REST FRAMEWORK
+# Estas clases permiten ver la API Root en:
+# http://localhost:8002/calidad_aire/
+#
+# No reemplazan las vistas anteriores.
+# Solo agregan una interfaz navegable parecida a la del profesor.
+# =========================================================
+
+class ZonaCalidadAireModelViewSet(viewsets.ModelViewSet):
+    queryset = ZonaCalidadAire.objects.all().order_by("id")
+    serializer_class = ZonaCalidadAireSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class CorredorEmisionModelViewSet(viewsets.ModelViewSet):
+    queryset = CorredorEmision.objects.all().order_by("id")
+    serializer_class = CorredorEmisionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class EstacionMonitoreoModelViewSet(viewsets.ModelViewSet):
+    queryset = EstacionMonitoreo.objects.all().order_by("id")
+    serializer_class = EstacionMonitoreoSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
