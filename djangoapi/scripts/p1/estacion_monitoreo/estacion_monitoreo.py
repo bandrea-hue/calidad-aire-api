@@ -33,7 +33,17 @@ class EstacionMonitoreo:
     def _validate_non_negative_contaminants(self, d):
         for field in self.contaminantes:
             if field in d and d[field] not in [None, ""]:
-                if float(d[field]) < 0:
+                try:
+                    d[field] = str(d[field]).replace(",", ".")
+                    value = float(d[field])
+                except Exception:
+                    return {
+                        "ok": False,
+                        "message": f"The contaminant {field} must be numeric",
+                        "data": []
+                    }
+
+                if value < 0:
                     return {
                         "ok": False,
                         "message": f"The contaminant {field} can not be negative",
@@ -96,7 +106,7 @@ class EstacionMonitoreo:
         if len(result) == 0:
             return {
                 "ok": False,
-                "message": "The monitoring station point is outside every zona_calidad_aire polygon",
+                "message": "El punto de la estacion de monitoreo esta fuera de las zonas de calidad del aire",
                 "data": []
             }
 

@@ -105,10 +105,15 @@ MIDDLEWARE = [
 ]
 
 #para el CORS. Solo el navegador. Las APPs no tienen CORS
+cors_allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS')
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+elif cors_allowed_origins:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_allowed_origins.split(',')]
+elif WEB_URL:
+    CORS_ALLOWED_ORIGINS = [WEB_URL]
 else:
-    CORS_ALLOW_ORIGINS = [WEB_URL]
+    CORS_ALLOWED_ORIGINS = []
 
 #necressary to allow the cookies to be sent in the header of the request
 CORS_ALLOW_CREDENTIALS = True
@@ -213,8 +218,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #if you try to use a view without being logged in, redirect to the following URL
 if DEBUG:
     LOGIN_URL = "/core/not_loggedin/"
+elif FORCE_SCRIPT_NAME:
+    LOGIN_URL = f"{FORCE_SCRIPT_NAME}/core/not_loggedin/"
 else:
-    LOGIN_URL = "/desweb-api/core/not_loggedin/"
+    LOGIN_URL = "/api/core/not_loggedin/"
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (

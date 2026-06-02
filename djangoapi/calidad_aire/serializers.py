@@ -1,14 +1,12 @@
 from rest_framework import serializers
 from django.contrib.gis.geos import GEOSGeometry
+from djangoapi.settings import EPSG_FOR_GEOMETRIES
 
 from calidad_aire.models import (
     ZonaCalidadAire,
     CorredorEmision,
     EstacionMonitoreo
 )
-
-
-EPSG_CODE = 9377
 
 
 class WKTGeometryModelSerializer(serializers.ModelSerializer):
@@ -54,7 +52,7 @@ class WKTGeometryModelSerializer(serializers.ModelSerializer):
         """
 
         try:
-            geom = GEOSGeometry(value, srid=EPSG_CODE)
+            geom = GEOSGeometry(value, srid=EPSG_FOR_GEOMETRIES)
         except Exception:
             raise serializers.ValidationError("Invalid WKT geometry")
 

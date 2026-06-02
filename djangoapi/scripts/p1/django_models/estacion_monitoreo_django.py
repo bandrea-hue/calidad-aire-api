@@ -1,11 +1,12 @@
 from django.forms.models import model_to_dict
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connection
+from djangoapi.settings import EPSG_FOR_GEOMETRIES
 
 from calidad_aire.models import EstacionMonitoreo as EstacionMonitoreoModel
 
 
-EPSG_CODE = 9377
+EPSG_CODE = EPSG_FOR_GEOMETRIES
 SNAP_DISTANCE = 0.0001
 
 
@@ -57,7 +58,17 @@ class EstacionMonitoreoDjango:
     def _validate_non_negative_contaminants(self, d):
         for field in self.contaminantes:
             if field in d and d[field] not in [None, ""]:
-                if float(d[field]) < 0:
+                try:
+                    d[field] = str(d[field]).replace(",", ".")
+                    value = float(d[field])
+                except Exception:
+                    return {
+                        "ok": False,
+                        "message": f"The contaminant {field} must be numeric",
+                        "data": []
+                    }
+
+                if value < 0:
                     return {
                         "ok": False,
                         "message": f"The contaminant {field} can not be negative",
@@ -142,7 +153,7 @@ class EstacionMonitoreoDjango:
         if len(result) == 0:
             return {
                 "ok": False,
-                "message": "The monitoring station point is outside every zona_calidad_aire polygon",
+                "message": "El punto de la estacion de monitoreo esta fuera de las zonas de calidad del aire",
                 "data": []
             }
 

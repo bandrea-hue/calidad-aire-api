@@ -1,12 +1,13 @@
 from django.forms.models import model_to_dict
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connection
+from djangoapi.settings import EPSG_FOR_GEOMETRIES
 
 
 from calidad_aire.models import ZonaCalidadAire as ZonaCalidadAireModel
 
 
-EPSG_CODE = 9377
+EPSG_CODE = EPSG_FOR_GEOMETRIES
 SNAP_DISTANCE = 0.0001
 
 
@@ -56,7 +57,17 @@ class ZonaCalidadAireDjango:
     def _validate_non_negative_contaminants(self, d):
         for field in self.contaminantes:
             if field in d and d[field] not in [None, ""]:
-                if float(d[field]) < 0:
+                try:
+                    d[field] = str(d[field]).replace(",", ".")
+                    value = float(d[field])
+                except Exception:
+                    return {
+                        "ok": False,
+                        "message": f"The contaminant {field} must be numeric",
+                        "data": []
+                    }
+
+                if value < 0:
                     return {
                         "ok": False,
                         "message": f"The contaminant {field} can not be negative",
@@ -154,7 +165,7 @@ class ZonaCalidadAireDjango:
         if len(result) > 0:
             return {
                 "ok": False,
-                "message": "Polygon interior intersects another polygon",
+                "message": "El poligono intersecta el interior de otro poligono",
                 "data": result
             }
 
@@ -204,7 +215,7 @@ class ZonaCalidadAireDjango:
                 nombre_zona=d.get("nombre_zona"),
                 municipio=d.get("municipio"),
                 poblacion=d.get("poblacion"),
-                area_ha=d.get("area_ha"),
+                area_ha=geom.area / 10000,
                 pm25_promedio=d.get("pm25_promedio"),
                 pm10_promedio=d.get("pm10_promedio"),
                 no2_promedio=d.get("no2_promedio"),
@@ -325,7 +336,7 @@ class ZonaCalidadAireDjango:
             obj.nombre_zona = d.get("nombre_zona")
             obj.municipio = d.get("municipio")
             obj.poblacion = d.get("poblacion")
-            obj.area_ha = d.get("area_ha")
+            obj.area_ha = geom.area / 10000
             obj.pm25_promedio = d.get("pm25_promedio")
             obj.pm10_promedio = d.get("pm10_promedio")
             obj.no2_promedio = d.get("no2_promedio")

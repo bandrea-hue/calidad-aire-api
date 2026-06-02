@@ -1,11 +1,12 @@
 from django.forms.models import model_to_dict
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connection
+from djangoapi.settings import EPSG_FOR_GEOMETRIES
 
 from calidad_aire.models import CorredorEmision as CorredorEmisionModel
 
 
-EPSG_CODE = 9377
+EPSG_CODE = EPSG_FOR_GEOMETRIES
 SNAP_DISTANCE = 0.0001
 
 
@@ -54,7 +55,17 @@ class CorredorEmisionDjango:
     def _validate_non_negative_contaminants(self, d):
         for field in self.contaminantes:
             if field in d and d[field] not in [None, ""]:
-                if float(d[field]) < 0:
+                try:
+                    d[field] = str(d[field]).replace(",", ".")
+                    value = float(d[field])
+                except Exception:
+                    return {
+                        "ok": False,
+                        "message": f"The contaminant {field} must be numeric",
+                        "data": []
+                    }
+
+                if value < 0:
                     return {
                         "ok": False,
                         "message": f"The contaminant {field} can not be negative",
@@ -150,7 +161,7 @@ class CorredorEmisionDjango:
         if len(result) > 0:
             return {
                 "ok": False,
-                "message": "LineString intersects another LineString",
+                "message": "La linea intersecta otra linea",
                 "data": result
             }
 
@@ -206,7 +217,7 @@ class CorredorEmisionDjango:
                 pm25_estimado=d.get("pm25_estimado"),
                 no2_estimado=d.get("no2_estimado"),
                 categoria_emision=d.get("categoria_emision"),
-                longitud_km=d.get("longitud_km"),
+                longitud_km=geom.length / 1000,
                 fecha_actualizacion=d.get("fecha_actualizacion"),
                 geom=geom
             )
@@ -329,7 +340,7 @@ class CorredorEmisionDjango:
             obj.pm25_estimado = d.get("pm25_estimado")
             obj.no2_estimado = d.get("no2_estimado")
             obj.categoria_emision = d.get("categoria_emision")
-            obj.longitud_km = d.get("longitud_km")
+            obj.longitud_km = geom.length / 1000
             obj.fecha_actualizacion = d.get("fecha_actualizacion")
             obj.geom = geom
 

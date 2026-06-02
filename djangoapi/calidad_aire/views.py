@@ -1,7 +1,6 @@
 from django.http import JsonResponse
-from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-from rest_framework import serializers
 from rest_framework import viewsets
 from rest_framework import permissions
 
@@ -12,13 +11,15 @@ from calidad_aire.models import (
     CorredorEmision,
     EstacionMonitoreo
 )
+from calidad_aire.serializers import (
+    ZonaCalidadAireSerializer,
+    CorredorEmisionSerializer,
+    EstacionMonitoreoSerializer
+)
 
 from scripts.p1.django_models.zona_calidad_aire_django import ZonaCalidadAireDjango
 from scripts.p1.django_models.corredor_emision_django import CorredorEmisionDjango
 from scripts.p1.django_models.estacion_monitoreo_django import EstacionMonitoreoDjango
-
-
-EPSG_CODE = 9377
 
 
 # =========================================================
@@ -38,58 +39,6 @@ def user_is_not_authenticated(request):
 
 
 # =========================================================
-# SERIALIZERS PARA DJANGO REST FRAMEWORK
-# Estos serializers permiten que la geometría se vea como WKT
-# en la API navegable de Django REST Framework.
-# =========================================================
-
-class WKTGeometryModelSerializer(serializers.ModelSerializer):
-    geom = serializers.CharField()
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-
-        if instance.geom:
-            data["geom"] = instance.geom.wkt
-        else:
-            data["geom"] = None
-
-        return data
-
-    def validate_geom(self, value):
-        try:
-            geom = GEOSGeometry(value, srid=EPSG_CODE)
-        except Exception:
-            raise serializers.ValidationError("Invalid WKT geometry")
-
-        if not geom.valid:
-            raise serializers.ValidationError("Invalid geometry")
-
-        return geom
-
-
-class ZonaCalidadAireSerializer(WKTGeometryModelSerializer):
-
-    class Meta:
-        model = ZonaCalidadAire
-        fields = "__all__"
-
-
-class CorredorEmisionSerializer(WKTGeometryModelSerializer):
-
-    class Meta:
-        model = CorredorEmision
-        fields = "__all__"
-
-
-class EstacionMonitoreoSerializer(WKTGeometryModelSerializer):
-
-    class Meta:
-        model = EstacionMonitoreo
-        fields = "__all__"
-
-
-# =========================================================
 # VIEWS CON BASEDJANGOVIEW
 # Estas son las vistas principales del taller.
 # Se usan con rutas tipo:
@@ -99,7 +48,7 @@ class EstacionMonitoreoSerializer(WKTGeometryModelSerializer):
 # /calidad_aire/estacion_monitoreo/delete/1/
 # =========================================================
 
-class ZonaCalidadAireView(BaseDjangoView):
+class ZonaCalidadAireView(LoginRequiredMixin, BaseDjangoView):
 
     def insert(self, request):
         if user_is_not_authenticated(request):
@@ -139,7 +88,7 @@ class ZonaCalidadAireView(BaseDjangoView):
         return JsonResponse(result)
 
 
-class CorredorEmisionView(BaseDjangoView):
+class CorredorEmisionView(LoginRequiredMixin, BaseDjangoView):
 
     def insert(self, request):
         if user_is_not_authenticated(request):
@@ -179,7 +128,7 @@ class CorredorEmisionView(BaseDjangoView):
         return JsonResponse(result)
 
 
-class EstacionMonitoreoView(BaseDjangoView):
+class EstacionMonitoreoView(LoginRequiredMixin, BaseDjangoView):
 
     def insert(self, request):
         if user_is_not_authenticated(request):
